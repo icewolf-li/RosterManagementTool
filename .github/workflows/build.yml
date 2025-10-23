@@ -37,7 +37,7 @@ jobs:
     - name: 获取版本号
       id: get_version
       run: |
-        $content = Get-Content -Path .\init.py
+        $content = Get-Content -Path .\init.py -Raw
         $version_match = [regex]::Match($content, 'version\s*=\s*["\'](.*?)["\']')
         if ($version_match.Success) {
           echo "version=${version_match.Groups[1].Value}" >> $env:GITHUB_OUTPUT
