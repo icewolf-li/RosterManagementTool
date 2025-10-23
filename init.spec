@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='花名册管理工具v1.0.2',
+    name='花名册管理工具v1.0.3',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
