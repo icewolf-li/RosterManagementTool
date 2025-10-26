@@ -34,10 +34,31 @@ jobs:
     - name: 构建可执行文件
       run: pyinstaller init.spec
 
+    - name: 验证构建产物
+      run: |
+        # 列出dist目录内容，确认文件生成
+        Write-Host "dist目录内容："
+        Get-ChildItem -Path .\dist -Recurse
+        
+        # 检查文件是否存在
+        if (Test-Path ".\dist\花名册管理工具.exe") {
+          Write-Host "找到可执行文件：.\dist\花名册管理工具.exe"
+        } else {
+          Write-Host "错误：未找到可执行文件"
+          Get-ChildItem -Path .\ -Recurse | Where-Object { $_.Extension -eq ".exe" }
+        }
+
     - name: 准备发布资产
       run: |
+        # 确保目标目录存在
         New-Item -ItemType Directory -Force -Path release_assets
-        Copy-Item -Path .\dist\* -Destination release_assets -Recurse
+        
+        # 直接复制dist目录下的可执行文件
+        Copy-Item -Path ".\dist\花名册管理工具.exe" -Destination "release_assets\" -Force
+        
+        # 验证复制结果
+        Write-Host "release_assets目录内容："
+        Get-ChildItem -Path .\release_assets
 
     - name: 上传构建产物
       uses: actions/upload-artifact@v4
@@ -47,10 +68,15 @@ jobs:
 
     - name: 创建GitHub Release（仅在标签推送时）
       if: startsWith(github.ref, 'refs/tags/')
-      uses: JasonEtco/upload-to-release@v0.1.1
+      uses: softprops/action-gh-release@v1
       with:
-        files: release_assets\*
-        name: 版本 ${{ steps.get_version.outputs.version }}
-        body: 自动构建的版本 ${{ steps.get_version.outputs.version }}
+        # 使用正确的路径格式
+        files: ./release_assets/花名册管理工具.exe
+        # 直接使用tag名称作为release名称
+        tag_name: ${{ github.ref_name }}
+        name: 版本 ${{ github.ref_name }}
+        body: 自动构建的版本 ${{ github.ref_name }}
+        # 添加prerelease标记以便测试
+        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
