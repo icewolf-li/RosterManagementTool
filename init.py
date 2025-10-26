@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import messagebox, scrolledtext
 
 # 版本
-version = "1.0.6"
+version = "1.0.8"
 
 # 定义主文件夹路径
 dir_path = "计应(中职升本)2501班"
@@ -62,6 +62,67 @@ def rename_file():
             except Exception as e:
                 print(f"错误：无法重命名 {filename}，原因：{e}")
 
+# 创建汇总表文件
+def create_summary_file(callback=None):
+    if not os.path.exists(dir_path):
+        message = f"主文件夹不存在：{dir_path}"
+        if callback:
+            callback(message)
+        return
+    
+    # 收集非空子文件夹的学生信息
+    student_data = []
+    processed_count = 0
+    
+    for subfolder_name in os.listdir(dir_path):
+        subfolder_path = os.path.join(dir_path, subfolder_name)
+        
+        # 确保是文件夹
+        if not os.path.isdir(subfolder_path):
+            continue
+        
+        # 检查文件夹是否非空
+        if not os.listdir(subfolder_path):
+            continue
+        
+        # 获取对应的学号
+        if subfolder_name not in name_to_id:
+            if callback:
+                callback(f"警告：未找到 '{subfolder_name}' 对应的学号，跳过该文件夹")
+            continue
+        
+        student_id = name_to_id[subfolder_name]
+        student_data.append([student_id, subfolder_name])
+        processed_count += 1
+        if callback:
+            callback(f"收集信息：学号={student_id}, 姓名={subfolder_name}")
+    
+    # 创建Excel文件
+    if student_data:
+        # 按学号排序
+        student_data.sort(key=lambda x: x[0])
+        
+        # 创建DataFrame
+        # 将学号转换为字符串类型，避免Excel自动识别为数字并显示小数
+        df = pd.DataFrame([[str(student_id), subfolder_name] for student_id, subfolder_name in student_data], 
+                          columns=['学号', '姓名'])
+        
+        # 保存到Excel文件
+        excel_path = os.path.join(dir_path, "汇总表.xlsx")
+        try:
+            # 使用已有的openpyxl引擎（已在requirements.txt中）
+            df.to_excel(excel_path, index=False, engine='openpyxl')
+            
+            if callback:
+                callback(f"\n汇总表创建成功：{excel_path}")
+                callback(f"共处理 {processed_count} 个非空子文件夹")
+        except Exception as e:
+            if callback:
+                callback(f"错误：无法创建Excel文件，原因：{e}")
+    else:
+        if callback:
+            callback("未找到非空子文件夹，无法创建汇总表")
+
 # 删除空文件夹
 def delete_empty_folders(callback=None):
     if not os.path.exists(dir_path):
@@ -116,11 +177,12 @@ class RosterManagerApp:
             except Exception:
                 # 如果仍然失败，忽略图标设置错误，程序继续运行
                 pass
-        root.geometry("300x400")
+        root.geometry("300x500")
         root.resizable(False, False)
         
         # 获取当前目录
-        current_dir = os.getcwd()
+        # current_dir = os.getcwd()
+        current_dir = "C:\\Users\\leegw\\Desktop\\计应花名册"
         
         # 创建欢迎标签
         welcome_label = tk.Label(root, text="欢迎使用学委开发的花名册管理工具", 
@@ -147,12 +209,6 @@ class RosterManagerApp:
                                 width=20, height=2, font=("SimHei", 10),
                                 command=self.create_folders)
         create_button.pack(pady=5)
-        
-        # 重命名文件按钮
-        rename_button = tk.Button(button_frame, text="文件重命名", 
-                                width=20, height=2, font=("SimHei", 10),
-                                command=self.rename_files)
-        rename_button.pack(pady=5)
 
         # 删除空文件夹按钮
         delect_button = tk.Button(button_frame, text="删除空文件夹",
@@ -160,6 +216,18 @@ class RosterManagerApp:
                                   command=self.delete_empty_folders)
         delect_button.pack(pady=5)
         
+        # 重命名文件按钮
+        rename_button = tk.Button(button_frame, text="文件重命名", 
+                                width=20, height=2, font=("SimHei", 10),
+                                command=self.rename_files)
+        rename_button.pack(pady=5)
+
+        # 创建汇总表文件按钮
+        create_summary_button = tk.Button(button_frame, text="创建汇总表文件",
+                                  width=20, height=2, font=("SimHei", 10),
+                                  command=self.create_summary_file)
+        create_summary_button.pack(pady=5)
+
         # 退出按钮
         exit_button = tk.Button(root, text="退出", width=15, 
                               font=("SimHei", 9),
@@ -217,6 +285,21 @@ class RosterManagerApp:
         except Exception as e:
             self.log_message(f"错误: {str(e)}")
             messagebox.showerror("错误", f"删除空文件夹失败: {str(e)}")
+    
+    def create_summary_file(self):
+        """创建汇总表功能"""
+        try:
+            # 清空输出
+            self.output_text.config(state=tk.NORMAL)
+            self.output_text.delete(1.0, tk.END)
+            self.output_text.config(state=tk.DISABLED)
+            
+            # 调用创建汇总表函数
+            create_summary_file(callback=self.log_message)
+            messagebox.showinfo("成功", "汇总表创建完成！")
+        except Exception as e:
+            self.log_message(f"错误: {str(e)}")
+            messagebox.showerror("错误", f"创建汇总表失败: {str(e)}")
 
 # 修改现有函数以支持回调
 def check_excel_file(callback=None):

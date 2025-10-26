@@ -34,23 +34,10 @@ jobs:
     - name: 构建可执行文件
       run: pyinstaller init.spec
 
-    - name: 获取版本号
-      id: get_version
-      run: |
-        # 从tag获取版本号，如果是分支推送则使用默认版本号
-        if ($env:GITHUB_REF -match '^refs/tags/v(.+)$') {
-          $version = $matches[1]
-        } else {
-          $version = "1.0.0"
-        }
-        echo "version=$version" >> $env:GITHUB_OUTPUT
-
     - name: 准备发布资产
       run: |
-        $version = "${{ steps.get_version.outputs.version }}"
         New-Item -ItemType Directory -Force -Path release_assets
         Copy-Item -Path .\dist\* -Destination release_assets -Recurse
-        Rename-Item -Path "release_assets\花名册管理工具.exe" -NewName "花名册管理工具.exe"
 
     - name: 上传构建产物
       uses: actions/upload-artifact@v4
@@ -63,7 +50,8 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: release_assets\*
-        name: 版本 ${{ steps.get_version.outputs.version }}
-        body: 自动构建的版本 ${{ steps.get_version.outputs.version }}
+        # 直接使用tag名称作为release名称
+        name: ${{ github.ref_name }}
+        body: 自动构建的版本 ${{ github.ref_name }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
