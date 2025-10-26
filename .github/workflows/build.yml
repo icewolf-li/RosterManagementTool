@@ -36,18 +36,35 @@ jobs:
     - name: 构建可执行文件
       run: pyinstaller init.spec
 
-    # Always upload the dist folder as a workflow artifact so branch/PR runs keep the build output
+    # 上传构建产物作为workflow artifact，设置30天保留期
     - name: Upload dist as workflow artifact
       uses: actions/upload-artifact@v4
       with:
         name: dist
         path: dist
+        retention-days: 30
 
-    # Only run release+asset upload on tag pushes (refs/tags/...)
-    - name: Create GitHub Release and upload assets (tags only)
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v1
-      with:
-        files: 'dist/*'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # 发布作业 - 仅在标签推送时运行，并且依赖于build作业
+  release:
+    needs: build
+    runs-on: windows-latest
+    # 只在标签推送时运行
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: 列出dist目录内容（调试）
+        run: dir dist
+        shell: powershell
+
+      - name: 创建GitHub Release并上传资产
+        uses: softprops/action-gh-release@v1
+        with:
+          files: 'dist/*'
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
