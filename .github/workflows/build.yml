@@ -1,4 +1,6 @@
 name: 自动构建Windows可执行文件
+permissions: 
+  contents: write
 
 on:
   push:

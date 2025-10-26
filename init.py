@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import messagebox, scrolledtext
 
 # 版本
-version = "1.2.3"
+version = "1.2.4"
 
 # 定义主文件夹路径
 dir_path = "计应(中职升本)2501班"
