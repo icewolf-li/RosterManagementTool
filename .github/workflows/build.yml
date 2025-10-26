@@ -34,4 +34,19 @@ jobs:
 
     - name: 构建可执行文件
       run: pyinstaller init.spec
+
+    - name: Upload to Release Action
+      # You may pin to the exact commit or the version.
+      # uses: Shopify/upload-to-release@c77c9b3e5d288adaef98a7007bf92340ec6ce03b
+      uses: Shopify/upload-to-release@v2.0.0
+      with:
+        # Artifact name
+        name: "花名册管理工具.exe"
+        # Path to the file to upload
+        path: "D:\\a\\RosterManagementTool\\RosterManagementTool\\dist"
+        # Content type for the file
+        content-type: exe
+        # secrets.GITHUB_TOKEN
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+          
   
