@@ -27,6 +27,7 @@ jobs:
         pip install pandas openpyxl pyinstaller
 
     - name: 创建spec文件（如果不存在）
+      shell: powershell
       run: |
         if (-not (Test-Path .\init.spec)) {
           pyinstaller --name "花名册管理工具" --onefile --windowed --icon=icon.ico init.py
@@ -34,4 +35,19 @@ jobs:
 
     - name: 构建可执行文件
       run: pyinstaller init.spec
-  
+
+    # Always upload the dist folder as a workflow artifact so branch/PR runs keep the build output
+    - name: Upload dist as workflow artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: dist
+
+    # Only run release+asset upload on tag pushes (refs/tags/...)
+    - name: Create GitHub Release and upload assets (tags only)
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: 'dist/*'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
