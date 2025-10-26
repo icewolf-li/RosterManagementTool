@@ -55,7 +55,7 @@ jobs:
         New-Item -ItemType Directory -Force -Path release_assets
         
         # 直接复制dist目录下的可执行文件
-        Copy-Item -Path .\dist\花名册管理工具.exe -Destination .\release_assets\花名册管理工具.exe -Force
+        Copy-Item -Path .\dist\花名册管理工具.exe -Destination .\release_assets\roster_manager.exe -Force
         
         # 验证复制结果
         Write-Host "release_assets目录内容："
@@ -64,8 +64,8 @@ jobs:
     - name: 上传构建产物
       uses: actions/upload-artifact@v4
       with:
-        name: 花名册管理工具.exe
-        path: .\release_assets\花名册管理工具.exe
+        name: roster_manager.exe
+        path: .\release_assets\roster_manager.exe
         # 确保产物保留时间足够长
         retention-days: 30
 
@@ -80,7 +80,7 @@ jobs:
     - name: 下载构建产物
       uses: actions/download-artifact@v4
       with:
-        name: 花名册管理工具.exe
+        name: roster_manager.exe
         path: .\release_assets
 
     - name: 验证下载的产物
@@ -89,7 +89,7 @@ jobs:
         Get-ChildItem -Path .\release_assets -Recurse
         
         # 检查文件是否存在
-        if (Test-Path ".\release_assets\花名册管理工具.exe") {
+        if (Test-Path ".\release_assets\roster_manager.exe") {
           Write-Host "找到下载的可执行文件"
         } else {
           Write-Host "错误：未找到下载的可执行文件"
@@ -99,7 +99,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         # 使用相对路径格式
-        files: .\release_assets\花名册管理工具.exe
+        files: .\release_assets\roster_manager.exe
         # 使用tag名称作为release名称
         name: 版本 ${{ github.ref_name }}
         body: 自动构建的版本 ${{ github.ref_name }}
