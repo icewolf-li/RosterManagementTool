@@ -1,10 +1,10 @@
 import pandas as pd
 import os
 import tkinter as tk
-from tkinter import messagebox, scrolledtext
+from tkinter import messagebox, scrolledtext ,ttk
 
 # 版本
-version = "1.2.0"
+version = "1.2.1"
 
 # 定义主文件夹路径
 dir_path = "计应(中职升本)2501班"
@@ -181,8 +181,8 @@ class RosterManagerApp:
         root.resizable(False, False)
         
         # 获取当前目录
-        current_dir = os.getcwd()
-        # current_dir = "C:\\Users\\leegw\\Desktop\\计应花名册"
+        # current_dir = os.getcwd()
+        current_dir = "C:\\Users\\leegw\\Desktop\\计应花名册"
         
         # 创建欢迎标签
         welcome_label = tk.Label(root, text="欢迎使用学委开发的花名册管理工具", 
@@ -216,11 +216,20 @@ class RosterManagerApp:
                                   command=self.delete_empty_folders)
         delect_button.pack(pady=5)
         
-        # 重命名文件按钮
-        rename_button = tk.Button(button_frame, text="文件重命名", 
-                                width=20, height=2, font=("SimHei", 10),
+        # 创建重命名控制框架
+        rename_frame = tk.Frame(button_frame)
+        rename_frame.pack(pady=5)
+        
+        # 重命名文件方式下拉列表 - 放在左边
+        self.rename_method = ttk.Combobox(rename_frame, values=["学号", "姓名", "学号-姓名", "姓名-学号"], width=10)
+        self.rename_method.set("学号")
+        self.rename_method.pack(side=tk.LEFT, padx=5)
+
+        # 重命名文件按钮 - 缩短一半并靠右
+        rename_button = tk.Button(rename_frame, text="文件重命名", 
+                                width=10, height=2, font=("SimHei", 10),
                                 command=self.rename_files)
-        rename_button.pack(pady=5)
+        rename_button.pack(side=tk.RIGHT, padx=5)
 
         # 创建汇总表文件按钮
         create_summary_button = tk.Button(button_frame, text="创建汇总表文件",
@@ -264,9 +273,12 @@ class RosterManagerApp:
             self.output_text.delete(1.0, tk.END)
             self.output_text.config(state=tk.DISABLED)
             
-            # 调用原有的重命名文件函数
-            rename_file(callback=self.log_message)
-            messagebox.showinfo("成功", "文件重命名成功！")
+            # 获取下拉列表中选择的命名方式
+            rename_method = self.rename_method.get()
+            
+            # 调用重命名文件函数，并传递命名方式
+            rename_file(rename_method=rename_method, callback=self.log_message)
+            messagebox.showinfo("成功", f"文件重命名成功！使用命名方式：{rename_method}")
         except Exception as e:
             self.log_message(f"错误: {str(e)}")
             messagebox.showerror("错误", f"文件重命名失败: {str(e)}")
@@ -325,7 +337,7 @@ def check_excel_file(callback=None):
     if callback and created_count == 0:
         callback("所有学生文件夹已存在，无需创建")
 
-def rename_file(callback=None):
+def rename_file(rename_method="学号", callback=None):
     if not os.path.exists(dir_path):
         message = f"主文件夹不存在：{dir_path}"
         if callback:
@@ -351,6 +363,7 @@ def rename_file(callback=None):
             continue
         
         student_id = name_to_id[subfolder_name]
+        student_name = subfolder_name
         
         # 获取子文件夹中的所有文件
         files = [f for f in os.listdir(subfolder_path) if os.path.isfile(os.path.join(subfolder_path, f))]
@@ -362,7 +375,19 @@ def rename_file(callback=None):
         for i, filename in enumerate(files, start=1):
             old_path = os.path.join(subfolder_path, filename)
             file_ext = os.path.splitext(filename)[1]  # 保留扩展名
-            new_filename = f"{student_id}（{i}）{file_ext}"
+            
+            # 根据选择的命名方式生成新文件名
+            if rename_method == "学号":
+                new_filename = f"{student_id}（{i}）{file_ext}"
+            elif rename_method == "姓名":
+                new_filename = f"{student_name}（{i}）{file_ext}"
+            elif rename_method == "学号-姓名":
+                new_filename = f"{student_id}-{student_name}（{i}）{file_ext}"
+            elif rename_method == "姓名-学号":
+                new_filename = f"{student_name}-{student_id}（{i}）{file_ext}"
+            else:
+                new_filename = f"{student_id}（{i}）{file_ext}"  # 默认使用学号
+            
             new_path = os.path.join(subfolder_path, new_filename)
             
             try:
@@ -376,6 +401,7 @@ def rename_file(callback=None):
     
     if callback:
         callback(f"\n重命名完成：成功重命名 {renamed_count} 个文件，跳过 {skipped_count} 个文件夹")
+        callback(f"使用的命名方式：{rename_method}")
 
 
 if __name__ == "__main__":
