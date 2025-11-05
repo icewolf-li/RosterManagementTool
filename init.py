@@ -181,8 +181,8 @@ class RosterManagerApp:
         root.resizable(False, False)
         
         # 获取当前目录
-        # current_dir = os.getcwd()
-        current_dir = "C:\\Users\\leegw\\Desktop\\计应花名册"
+        current_dir = os.getcwd()
+        # current_dir = "C:\\Users\\leegw\\Desktop\\计应花名册"
         
         # 创建欢迎标签
         welcome_label = tk.Label(root, text="欢迎使用学委开发的花名册管理工具", 
