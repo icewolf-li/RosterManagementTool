@@ -170,19 +170,18 @@ class RosterManagerApp:
         except Exception:
             try:
                 # 尝试使用绝对路径
-                import os
                 icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icon.ico")
                 if os.path.exists(icon_path):
                     root.iconbitmap(icon_path)
             except Exception:
                 # 如果仍然失败，忽略图标设置错误，程序继续运行
                 pass
-        root.geometry("300x500")
+        root.geometry("300x600")
         root.resizable(False, False)
         
         # 获取当前目录
-        # current_dir = os.getcwd()
-        current_dir = "C:\\Users\\leegw\\Desktop\\计应花名册"
+        current_dir = os.getcwd()
+        # current_dir = "C:\\Users\\leegw\\Desktop\\计应花名册"
         
         # 创建欢迎标签
         welcome_label = tk.Label(root, text="欢迎使用学委开发的花名册管理工具", 
@@ -236,6 +235,9 @@ class RosterManagerApp:
                                   width=20, height=2, font=("SimHei", 10),
                                   command=self.create_summary_file)
         create_summary_button.pack(pady=5)
+
+        # 打水印
+        
 
         # 退出按钮
         exit_button = tk.Button(root, text="退出", width=15, 
