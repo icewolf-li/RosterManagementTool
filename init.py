@@ -2,9 +2,10 @@ import pandas as pd
 import os
 import tkinter as tk
 from tkinter import messagebox, scrolledtext ,ttk
+from PIL import Image, ImageDraw, ImageFont
 
 # 版本
-version = "1.2.1"
+version = "1.3.0"
 
 # 定义主文件夹路径
 dir_path = "计应(中职升本)2501班"
@@ -157,6 +158,154 @@ def delete_empty_folders(callback=None):
         else:
             callback("未找到空文件夹")
 
+# 判断文件是否为图片格式
+def is_image_file(filename):
+    """判断文件是否为图片格式"""
+    image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp']
+    ext = os.path.splitext(filename)[1].lower()
+    return ext in image_extensions
+
+# 为单张图片添加水印
+def add_watermark_to_image(image_path, student_name, student_id, callback=None):
+    """为单张图片添加水印
+    
+    Args:
+        image_path: 图片文件路径
+        student_name: 学生姓名
+        student_id: 学生学号
+        callback: 回调函数（可选）
+    """
+    try:
+        # 打开图片
+        img = Image.open(image_path)
+        original_width, original_height = img.size
+        
+        # 计算水印区域高度（原图高度的15%）
+        watermark_height = int(original_height * 0.15)
+        
+        # 计算自适应字体大小（原图宽度的3-4%）
+        font_size = int(original_width * 0.035)
+        if font_size < 12:
+            font_size = 12  # 最小字号
+        
+        # 创建新画布（原图高度 + 水印区域高度）
+        new_height = original_height + watermark_height
+        new_img = Image.new('RGB', (original_width, new_height), color='white')
+        
+        # 将原图粘贴到新画布上方
+        new_img.paste(img, (0, 0))
+        
+        # 创建绘图对象
+        draw = ImageDraw.Draw(new_img)
+        
+        # 尝试使用中文字体
+        try:
+            # Windows系统常用中文字体
+            font = ImageFont.truetype("msyh.ttc", font_size)  # 微软雅黑
+        except:
+            try:
+                font = ImageFont.truetype("simhei.ttf", font_size)  # 黑体
+            except:
+                try:
+                    font = ImageFont.truetype("arial.ttf", font_size)  # Arial
+                except:
+                    font = ImageFont.load_default()
+        
+        # 准备水印文本（横向排列）
+        watermark_text = f"{student_name} - {student_id}"
+        
+        # 计算文本位置（居中对齐）
+        bbox = draw.textbbox((0, 0), watermark_text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        
+        # 水平居中
+        x = (original_width - text_width) // 2
+        # 垂直居中（在水印区域内）
+        y = original_height + (watermark_height - text_height) // 2
+        
+        # 绘制文本（黑色）
+        draw.text((x, y), watermark_text, font=font, fill='black')
+        
+        # 保存图片（覆盖原文件）
+        new_img.save(image_path)
+        
+        if callback:
+            callback(f"成功：{image_path}")
+        
+        return True
+    except Exception as e:
+        if callback:
+            callback(f"错误：无法处理 {image_path}，原因：{e}")
+        return False
+
+# 批量添加水印
+def batch_add_watermark(callback=None):
+    """批量为所有学生文件夹中的图片添加水印
+    
+    Args:
+        callback: 回调函数（用于GUI显示进度）
+    """
+    if not os.path.exists(dir_path):
+        message = f"主文件夹不存在：{dir_path}"
+        if callback:
+            callback(message)
+        return
+    
+    total_count = 0
+    success_count = 0
+    failed_count = 0
+    
+    if callback:
+        callback("开始批量添加水印...")
+    
+    # 遍历主文件夹下的所有子文件夹
+    for subfolder_name in os.listdir(dir_path):
+        subfolder_path = os.path.join(dir_path, subfolder_name)
+        
+        # 确保是文件夹
+        if not os.path.isdir(subfolder_path):
+            continue
+        
+        # 获取对应的学号
+        if subfolder_name not in name_to_id:
+            if callback:
+                callback(f"警告：未找到 '{subfolder_name}' 对应的学号，跳过该文件夹")
+            continue
+        
+        student_id = name_to_id[subfolder_name]
+        student_name = subfolder_name
+        
+        if callback:
+            callback(f"\n处理文件夹：{subfolder_name}")
+        
+        # 获取子文件夹中的所有文件
+        files = [f for f in os.listdir(subfolder_path) if os.path.isfile(os.path.join(subfolder_path, f))]
+        
+        # 只处理图片文件
+        image_files = [f for f in files if is_image_file(f)]
+        
+        if not image_files:
+            if callback:
+                callback(f"  该文件夹中没有图片文件")
+            continue
+        
+        # 为每张图片添加水印
+        for filename in image_files:
+            image_path = os.path.join(subfolder_path, filename)
+            total_count += 1
+            
+            if add_watermark_to_image(image_path, student_name, student_id, callback):
+                success_count += 1
+            else:
+                failed_count += 1
+    
+    if callback:
+        callback(f"\n水印添加完成！")
+        callback(f"总计：{total_count} 张图片")
+        callback(f"成功：{success_count} 张")
+        callback(f"失败：{failed_count} 张")
+
 
 # 创建可视化界面
 class RosterManagerApp:
@@ -220,7 +369,7 @@ class RosterManagerApp:
         rename_frame.pack(pady=5)
         
         # 重命名文件方式下拉列表 - 放在左边
-        self.rename_method = ttk.Combobox(rename_frame, values=["学号", "姓名", "学号-姓名", "姓名-学号"], width=10)
+        self.rename_method = ttk.Combobox(rename_frame, values=["学号", "姓名", "学号-姓名", "姓名-学号", "姓名-学号-班级"], width=12)
         self.rename_method.set("学号")
         self.rename_method.pack(side=tk.LEFT, padx=5)
 
@@ -237,7 +386,10 @@ class RosterManagerApp:
         create_summary_button.pack(pady=5)
 
         # 打水印
-        
+        watermark_button = tk.Button(button_frame, text="批量添加水印",
+                                    width=20, height=2, font=("SimHei", 10),
+                                    command=self.add_watermark)
+        watermark_button.pack(pady=5)
 
         # 退出按钮
         exit_button = tk.Button(root, text="退出", width=15, 
@@ -314,6 +466,21 @@ class RosterManagerApp:
         except Exception as e:
             self.log_message(f"错误: {str(e)}")
             messagebox.showerror("错误", f"创建汇总表失败: {str(e)}")
+    
+    def add_watermark(self):
+        """批量添加水印功能"""
+        try:
+            # 清空输出
+            self.output_text.config(state=tk.NORMAL)
+            self.output_text.delete(1.0, tk.END)
+            self.output_text.config(state=tk.DISABLED)
+            
+            # 调用批量添加水印函数
+            batch_add_watermark(callback=self.log_message)
+            messagebox.showinfo("成功", "水印添加完成！")
+        except Exception as e:
+            self.log_message(f"错误: {str(e)}")
+            messagebox.showerror("错误", f"添加水印失败: {str(e)}")
 
 # 修改现有函数以支持回调
 def check_excel_file(callback=None):
@@ -387,6 +554,8 @@ def rename_file(rename_method="学号", callback=None):
                 new_filename = f"{student_id}-{student_name}（{i}）{file_ext}"
             elif rename_method == "姓名-学号":
                 new_filename = f"{student_name}-{student_id}（{i}）{file_ext}"
+            elif rename_method == "姓名-学号-班级":
+                new_filename = f"{student_name}-{student_id}-计应（中职升本）2501（{i}）{file_ext}"
             else:
                 new_filename = f"{student_id}（{i}）{file_ext}"  # 默认使用学号
             

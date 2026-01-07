@@ -2,3 +2,4 @@ pandas
 openpyxl
 pyinstaller
 xlsxwriter
+Pillow>=10.0.0
